@@ -1,0 +1,24 @@
+{
+  "name": "mern-collab-document-system",
+  "version": "1.0.0",
+  "description": "Full-Stack MERN Collaborative Document Sharing, Groups & Notification Web Application",
+  "scripts": {
+    "install:server": "npm --prefix server install",
+    "install:client": "npm --prefix client install",
+    "install:all": "npm run install:server && npm run install:client",
+    "server": "npm --prefix server run dev",
+    "client": "npm --prefix client run dev"
+  },
+  "keywords": [
+    "mern",
+    "mongodb",
+    "express",
+    "react",
+    "nodejs",
+    "socketio",
+    "rbac",
+    "multer"
+  ],
+  "author": "",
+  "license": "ISC"
+}
