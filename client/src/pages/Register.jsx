@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import GoogleAuthButton from '../components/common/GoogleAuthButton';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -58,12 +59,27 @@ const Register = () => {
   return (
     <div className="min-h-[85vh] flex items-center justify-center px-4 py-8">
       <div className="max-w-lg w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-indigo-500/20">
             <span className="text-white font-black text-2xl">M</span>
           </div>
           <h2 className="text-2xl font-black text-white">Create an Account</h2>
           <p className="text-xs text-slate-400 mt-1">Get started with your collaborative workspace profile</p>
+        </div>
+
+        {/* Google Authentication */}
+        <div className="mb-6">
+          <GoogleAuthButton text="Sign up with Google" />
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-800" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-slate-900 px-3 text-slate-500 font-semibold">
+                Or register with email
+              </span>
+            </div>
+          </div>
         </div>
 
         {error && (

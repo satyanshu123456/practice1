@@ -18,9 +18,23 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Please provide a password'],
       minlength: [6, 'Password must be at least 6 characters'],
       select: false,
+      required: false,
+    },
+    googleId: {
+      type: String,
+      default: null,
+      index: true,
+    },
+    authMethod: {
+      type: String,
+      enum: ['password', 'email-otp', 'google'],
+      default: 'password',
+    },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
     },
     // Profile Fields (Name, Bio, Profile Picture URL, Skills, Title, Location, Phone)
     bio: {

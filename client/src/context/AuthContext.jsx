@@ -38,6 +38,25 @@ export const AuthProvider = ({ children }) => {
     return res.data;
   };
 
+  const sendEmailOtp = async (email) => {
+    const res = await API.post('/auth/send-email-otp', { email });
+    return res.data;
+  };
+
+  const verifyEmailOtp = async (email, otp, name) => {
+    const res = await API.post('/auth/verify-email-otp', { email, otp, name });
+    localStorage.setItem('token', res.data.token);
+    setUser(res.data);
+    return res.data;
+  };
+
+  const loginWithGoogle = async (credential) => {
+    const res = await API.post('/auth/google', { credential });
+    localStorage.setItem('token', res.data.token);
+    setUser(res.data);
+    return res.data;
+  };
+
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
@@ -48,7 +67,19 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, updateProfileState, loading }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        login,
+        register,
+        sendEmailOtp,
+        verifyEmailOtp,
+        loginWithGoogle,
+        logout,
+        updateProfileState,
+        loading,
+      }}
+    >
       {!loading && children}
     </AuthContext.Provider>
   );
