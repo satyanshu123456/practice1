@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import GoogleAuthButton from '../components/common/GoogleAuthButton';
 
 const Login = () => {
   const [authMode, setAuthMode] = useState('email-otp'); // 'email-otp' or 'password'
+  const [searchParams] = useSearchParams();
+  const rawRedirect = searchParams.get('redirect');
+  const redirectUrl = rawRedirect ? (rawRedirect.startsWith('/') ? rawRedirect : `/${rawRedirect}`) : '/dashboard';
 
   // Password login state
   const [email, setEmail] = useState('');
@@ -34,7 +37,7 @@ const Login = () => {
 
     try {
       await login(email, password);
-      navigate('/dashboard');
+      navigate(redirectUrl);
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -82,7 +85,7 @@ const Login = () => {
 
     try {
       await verifyEmailOtp(otpEmail, otpCode, otpName);
-      navigate('/dashboard');
+      navigate(redirectUrl);
     } catch (err) {
       setError(err.response?.data?.message || 'Verification failed. Please try again.');
     } finally {
@@ -312,7 +315,10 @@ const Login = () => {
 
         <p className="text-center text-xs text-slate-400 mt-6">
           Don't have an account?{' '}
-          <Link to="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold">
+          <Link
+            to={rawRedirect ? `/register?redirect=${encodeURIComponent(rawRedirect)}` : '/register'}
+            className="text-indigo-400 hover:text-indigo-300 font-semibold"
+          >
             Create an account with password
           </Link>
         </p>

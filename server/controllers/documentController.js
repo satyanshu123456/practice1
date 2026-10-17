@@ -3,6 +3,7 @@ const Group = require('../models/Group');
 const Notification = require('../models/Notification');
 const fs = require('fs');
 const path = require('path');
+const { processFileUpload, deleteUploadedFile } = require('../config/cloudinary');
 
 // @desc Upload document & notify all other group members instantly
 // @route POST /api/documents/upload
@@ -36,10 +37,20 @@ exports.uploadDocument = async (req, res) => {
       }
     }
 
+    // Upload to Cloudinary (or fallback to local disk)
+    const uploadResult = await processFileUpload(req.file, {
+      folder: 'mern_collab/documents',
+      resourceType: 'auto',
+    });
+
     const document = await Document.create({
       title,
       originalName: req.file.originalname,
-      fileUrl: `/uploads/${req.file.filename}`,
+      fileUrl: uploadResult.url,
+      cloudinaryPublicId: uploadResult.publicId,
+      cloudinaryResourceType: uploadResult.resourceType,
+      localFilePath: uploadResult.localFilePath,
+      storageProvider: uploadResult.provider,
       fileType: req.file.mimetype,
       fileSize: req.file.size,
       group: groupId,
@@ -94,16 +105,59 @@ exports.uploadDocument = async (req, res) => {
   }
 };
 
-// @desc Get all documents for a group
+// @desc Get all documents for a group (Protected: Members only)
 // @route GET /api/documents/group/:groupId
 exports.getGroupDocuments = async (req, res) => {
   try {
     const { groupId } = req.params;
+    const group = await Group.findById(groupId);
+    if (!group) return res.status(404).json({ message: 'Group not found' });
+
+    const isMember = group.members.some((m) => m.user.toString() === req.user._id.toString());
+    if (!isMember) {
+      return res.status(403).json({ message: 'Access denied: You are not a member of this group' });
+    }
+
     const documents = await Document.find({ group: groupId })
       .populate('uploadedBy', 'name email avatarUrl')
       .sort({ createdAt: -1 });
 
     res.json(documents);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc Securely download or view document (Members only)
+// @route GET /api/documents/:id/download
+exports.downloadDocument = async (req, res) => {
+  try {
+    const document = await Document.findById(req.params.id);
+    if (!document) return res.status(404).json({ message: 'Document not found' });
+
+    const group = await Group.findById(document.group);
+    if (!group) return res.status(404).json({ message: 'Associated group not found' });
+
+    const isMember = group.members.some((m) => m.user.toString() === req.user._id.toString());
+    if (!isMember) {
+      return res.status(403).json({ message: 'Access denied: You are not a member of this group' });
+    }
+
+    // 1. If local file exists, stream directly (avoids Cloudinary PDF 401 issues)
+    if (document.localFilePath && fs.existsSync(document.localFilePath)) {
+      return res.download(document.localFilePath, document.originalName);
+    }
+
+    // 2. Legacy /uploads path
+    if (document.fileUrl && document.fileUrl.startsWith('/uploads/')) {
+      const legacyPath = path.join(__dirname, '..', document.fileUrl);
+      if (fs.existsSync(legacyPath)) {
+        return res.download(legacyPath, document.originalName);
+      }
+    }
+
+    // 3. Fallback to cloud URL
+    return res.redirect(document.fileUrl);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -117,8 +171,9 @@ exports.deleteDocument = async (req, res) => {
     if (!document) return res.status(404).json({ message: 'Document not found' });
 
     const group = await Group.findById(document.group);
-    const member = group.members.find((m) => m.user.toString() === req.user._id.toString());
+    if (!group) return res.status(404).json({ message: 'Group not found' });
 
+    const member = group.members.find((m) => m.user.toString() === req.user._id.toString());
     if (!member) return res.status(403).json({ message: 'Not authorized for this group' });
 
     const isUploader = document.uploadedBy.toString() === req.user._id.toString();
@@ -133,11 +188,13 @@ exports.deleteDocument = async (req, res) => {
       });
     }
 
-    // Delete local file from disk
-    const filePath = path.join(__dirname, '..', document.fileUrl);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
-    }
+    // Delete file from Cloudinary and local disk
+    await deleteUploadedFile(
+      document.fileUrl,
+      document.cloudinaryPublicId,
+      document.cloudinaryResourceType || 'raw',
+      document.localFilePath
+    );
 
     await Document.findByIdAndDelete(document._id);
 

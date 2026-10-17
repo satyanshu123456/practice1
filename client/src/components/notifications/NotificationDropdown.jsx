@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import API from '../../api/axiosInstance';
 import { useSocket } from '../../context/SocketContext';
 
@@ -6,6 +7,7 @@ const NotificationDropdown = () => {
   const [notifications, setNotifications] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const socket = useSocket();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchNotifications();
@@ -14,19 +16,29 @@ const NotificationDropdown = () => {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('new_notification', (newNotif) => {
-      setNotifications((prev) => [newNotif, ...prev]);
-    });
+    const handleNewNotification = (newNotif) => {
+      if (!newNotif || !newNotif._id) return;
+      setNotifications((prev) => {
+        if (prev.some((n) => n._id === newNotif._id)) return prev;
+        return [newNotif, ...prev];
+      });
+    };
+
+    socket.on('new_notification', handleNewNotification);
 
     return () => {
-      socket.off('new_notification');
+      socket.off('new_notification', handleNewNotification);
     };
   }, [socket]);
 
   const fetchNotifications = async () => {
     try {
       const res = await API.get('/notifications');
-      setNotifications(res.data);
+      const notifs = Array.isArray(res.data) ? res.data : [];
+      const uniqueNotifs = notifs.filter(
+        (n, index, self) => n && n._id && index === self.findIndex((item) => item && item._id === n._id)
+      );
+      setNotifications(uniqueNotifs);
     } catch (err) {
       console.error(err);
     }
@@ -36,6 +48,24 @@ const NotificationDropdown = () => {
     try {
       await API.put('/notifications/read-all');
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleNotificationClick = async (n) => {
+    try {
+      if (!n.isRead) {
+        await API.put(`/notifications/${n._id}/read`);
+        setNotifications((prev) =>
+          prev.map((item) => (item._id === n._id ? { ...item, isRead: true } : item))
+        );
+      }
+      setIsOpen(false);
+      const targetGroupId = n.group?._id || n.group;
+      if (targetGroupId) {
+        navigate(`/groups/${targetGroupId}`);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -77,11 +107,12 @@ const NotificationDropdown = () => {
               notifications.map((n) => (
                 <div
                   key={n._id}
-                  className={`p-3.5 flex items-start space-x-3 transition ${
+                  onClick={() => handleNotificationClick(n)}
+                  className={`p-3.5 flex items-start space-x-3 transition cursor-pointer hover:bg-slate-800/80 ${
                     n.isRead ? 'bg-transparent' : 'bg-indigo-950/30'
                   }`}
                 >
-                  <div className="w-2 h-2 mt-1.5 rounded-full bg-indigo-500 shrink-0" />
+                  <div className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${n.isRead ? 'bg-slate-600' : 'bg-indigo-500'}`} />
                   <div className="text-xs text-slate-300">
                     <p className="leading-relaxed">{n.message}</p>
                     <span className="text-[10px] text-slate-500 block mt-1">

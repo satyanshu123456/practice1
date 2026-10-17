@@ -1,7 +1,7 @@
 import React from 'react';
 import API from '../../api/axiosInstance';
 
-const DocumentList = ({ documents, currentMemberRole, currentUserId, onDocumentDeleted }) => {
+const DocumentList = ({ documents = [], currentMemberRole, currentUserId, onDocumentDeleted }) => {
   const handleDelete = async (docId) => {
     if (!window.confirm('Are you sure you want to delete this document?')) return;
     try {
@@ -12,7 +12,12 @@ const DocumentList = ({ documents, currentMemberRole, currentUserId, onDocumentD
     }
   };
 
-  if (!documents || documents.length === 0) {
+  // Ensure documents are deduplicated by _id
+  const uniqueDocuments = Array.isArray(documents)
+    ? documents.filter((doc, index, self) => doc && doc._id && index === self.findIndex((d) => d && d._id === doc._id))
+    : [];
+
+  if (uniqueDocuments.length === 0) {
     return (
       <div className="bg-slate-900 border border-slate-800 rounded-3xl p-10 text-center text-slate-500">
         <div className="text-3xl mb-2">📄</div>
@@ -24,9 +29,9 @@ const DocumentList = ({ documents, currentMemberRole, currentUserId, onDocumentD
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6">
-      <h3 className="text-base font-bold text-white mb-4">Shared Documents ({documents.length})</h3>
+      <h3 className="text-base font-bold text-white mb-4">Shared Documents ({uniqueDocuments.length})</h3>
       <div className="space-y-3">
-        {documents.map((doc) => {
+        {uniqueDocuments.map((doc) => {
           const isUploader = doc.uploadedBy?._id === currentUserId;
           const canDelete =
             currentMemberRole === 'Admin' ||
@@ -34,7 +39,9 @@ const DocumentList = ({ documents, currentMemberRole, currentUserId, onDocumentD
             isUploader;
 
           const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5000';
-          const fileDownloadUrl = `${serverUrl}${doc.fileUrl}`;
+          const token = localStorage.getItem('token');
+          // Route through secure backend download which serves local copy with auth & permissions
+          const fileDownloadUrl = `${serverUrl}/api/documents/${doc._id}/download?token=${token || ''}`;
 
           return (
             <div

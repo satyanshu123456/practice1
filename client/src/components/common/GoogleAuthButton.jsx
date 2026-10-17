@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const GoogleAuthButton = ({ text = 'Continue with Google' }) => {
   const { loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const rawRedirect = searchParams.get('redirect');
+  const redirectUrl = rawRedirect ? (rawRedirect.startsWith('/') ? rawRedirect : `/${rawRedirect}`) : '/dashboard';
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -19,7 +23,7 @@ const GoogleAuthButton = ({ text = 'Continue with Google' }) => {
         throw new Error('No credential received from Google');
       }
       await loginWithGoogle(credentialResponse.credential);
-      navigate('/dashboard');
+      navigate(redirectUrl);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Google authentication failed');
     } finally {

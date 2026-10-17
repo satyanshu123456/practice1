@@ -1,27 +1,14 @@
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
 
-const uploadDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  },
-});
+// Store files in memory buffer so they can be streamed to Cloudinary
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowedMimeTypes = [
     'application/pdf',
     'image/jpeg',
     'image/png',
+    'image/webp',
     'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   ];
@@ -29,7 +16,10 @@ const fileFilter = (req, file, cb) => {
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file format. Only PDF, JPEG, PNG, and DOCX files are allowed.'), false);
+    cb(
+      new Error('Invalid file format. Only PDF, JPEG, PNG, WEBP, and DOC/DOCX files are allowed.'),
+      false
+    );
   }
 };
 
@@ -40,3 +30,4 @@ const upload = multer({
 });
 
 module.exports = upload;
+

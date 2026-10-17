@@ -3,6 +3,7 @@ const { OAuth2Client } = require('google-auth-library');
 const User = require('../models/User');
 const EmailOtp = require('../models/EmailOtp');
 const { sendOtpEmail } = require('../config/emailService');
+const { processFileUpload, deleteUploadedFile } = require('../config/cloudinary');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -135,8 +136,19 @@ exports.uploadAvatar = async (req, res) => {
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    const avatarUrl = `/uploads/${req.file.filename}`;
-    user.avatarUrl = avatarUrl;
+    // Clean up previous Cloudinary avatar if user had uploaded one
+    if (user.cloudinaryPublicId) {
+      await deleteUploadedFile(user.avatarUrl, user.cloudinaryPublicId, 'image');
+    }
+
+    // Upload to Cloudinary (or fallback to local disk)
+    const uploadResult = await processFileUpload(req.file, {
+      folder: 'mern_collab/avatars',
+      resourceType: 'image',
+    });
+
+    user.avatarUrl = uploadResult.url;
+    user.cloudinaryPublicId = uploadResult.publicId;
     await user.save();
 
     res.json({

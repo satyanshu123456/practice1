@@ -6,6 +6,7 @@ const path = require('path');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const initializeSockets = require('./sockets/socketHandler');
+const { isCloudinaryConfigured } = require('./config/cloudinary');
 
 dotenv.config();
 
@@ -45,10 +46,18 @@ initializeSockets(io);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date() });
+  res.json({
+    status: 'ok',
+    timestamp: new Date(),
+    storage: {
+      provider: isCloudinaryConfigured() ? 'cloudinary' : 'local_disk',
+      cloudinaryConfigured: isCloudinaryConfigured(),
+    },
+  });
 });
 
 // API Routes
+app.use('/api/v1', require('./routes/upload.routes'));
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/groups', require('./routes/groupRoutes'));
 app.use('/api/documents', require('./routes/documentRoutes'));
@@ -65,4 +74,9 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log(
+    `📦 Storage Provider: ${
+      isCloudinaryConfigured() ? 'Cloudinary (Connected)' : 'Local Disk (uploads/)'
+    }`
+  );
 });

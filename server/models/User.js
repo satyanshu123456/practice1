@@ -46,6 +46,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80',
     },
+    cloudinaryPublicId: {
+      type: String,
+      default: null,
+    },
     skills: {
       type: [String],
       default: [],

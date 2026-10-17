@@ -13,16 +13,20 @@ import GroupDetail from './pages/GroupDetail';
 import JoinGroup from './pages/JoinGroup';
 
 function App() {
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || 'google-client-placeholder.apps.googleusercontent.com';
+  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const isGoogleConfigured = Boolean(
+    googleClientId &&
+    !googleClientId.includes('placeholder') &&
+    !googleClientId.includes('your_google')
+  );
 
-  return (
-    <GoogleOAuthProvider clientId={googleClientId}>
-      <BrowserRouter>
-        <AuthProvider>
-          <SocketProvider>
-            <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-              <Navbar />
-              <main className="flex-1">
+  const appContent = (
+    <BrowserRouter>
+      <AuthProvider>
+        <SocketProvider>
+          <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+            <Navbar />
+            <main className="flex-1">
                 <Routes>
                   {/* Public Routes */}
                   <Route path="/login" element={<Login />} />
@@ -53,14 +57,7 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
-                  <Route
-                    path="/join-group"
-                    element={
-                      <ProtectedRoute>
-                        <JoinGroup />
-                      </ProtectedRoute>
-                    }
-                  />
+                  <Route path="/join-group" element={<JoinGroup />} />
 
                   {/* Fallback */}
                   <Route path="*" element={<Navigate to="/dashboard" replace />} />
@@ -70,7 +67,12 @@ function App() {
           </SocketProvider>
         </AuthProvider>
       </BrowserRouter>
-    </GoogleOAuthProvider>
+  );
+
+  return isGoogleConfigured ? (
+    <GoogleOAuthProvider clientId={googleClientId}>{appContent}</GoogleOAuthProvider>
+  ) : (
+    appContent
   );
 }
 

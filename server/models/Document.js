@@ -20,7 +20,9 @@ const documentSchema = new mongoose.Schema(
       enum: [
         'application/pdf',
         'image/jpeg',
+        'image/jpg',
         'image/png',
+        'image/webp',
         'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       ],
@@ -46,11 +48,23 @@ const documentSchema = new mongoose.Schema(
       enum: ['Admin', 'Editor', 'Viewer'],
       default: ['Admin'],
     },
-    // Optional / Scalability: Storage Provider (Local or Google Drive placeholder)
+    // Storage Provider (Local, Cloudinary, Google Drive, or S3)
     storageProvider: {
       type: String,
-      enum: ['local', 'google-drive', 's3'],
+      enum: ['local', 'cloudinary', 'google-drive', 's3'],
       default: 'local',
+    },
+    cloudinaryPublicId: {
+      type: String,
+      default: null,
+    },
+    cloudinaryResourceType: {
+      type: String,
+      default: null,
+    },
+    localFilePath: {
+      type: String,
+      default: null,
     },
     externalDriveFileId: {
       type: String,

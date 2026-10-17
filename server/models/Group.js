@@ -25,8 +25,9 @@ const invitationSchema = new mongoose.Schema(
   {
     email: {
       type: String,
-      required: true,
       lowercase: true,
+      trim: true,
+      default: '',
     },
     role: {
       type: String,
@@ -36,6 +37,14 @@ const invitationSchema = new mongoose.Schema(
     inviteToken: {
       type: String,
       required: true,
+    },
+    invitedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    acceptedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
     },
     status: {
       type: String,

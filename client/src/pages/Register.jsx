@@ -1,9 +1,13 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import GoogleAuthButton from '../components/common/GoogleAuthButton';
 
 const Register = () => {
+  const [searchParams] = useSearchParams();
+  const rawRedirect = searchParams.get('redirect');
+  const redirectUrl = rawRedirect ? (rawRedirect.startsWith('/') ? rawRedirect : `/${rawRedirect}`) : '/dashboard';
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -48,7 +52,7 @@ const Register = () => {
         bio: formData.bio,
         skills: formData.skills,
       });
-      navigate('/dashboard');
+      navigate(redirectUrl);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed.');
     } finally {
@@ -177,7 +181,10 @@ const Register = () => {
 
         <p className="text-center text-xs text-slate-400 mt-6">
           Already registered?{' '}
-          <Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-semibold">
+          <Link
+            to={rawRedirect ? `/login?redirect=${encodeURIComponent(rawRedirect)}` : '/login'}
+            className="text-indigo-400 hover:text-indigo-300 font-semibold"
+          >
             Sign In here
           </Link>
         </p>
